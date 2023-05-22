@@ -62,12 +62,13 @@ def calculate_on_current_possible_set(i, sizes, values, capacity):
 
 
 def sorting_based_on_ratio(ratio, sizes, values):
-
+    sorted_lists = sorted(zip(ratio, sizes, values), reverse=True)
+    return [element for _, element, _ in sorted_lists], [element for _, _, element in sorted_lists]
 
 
 def autistic_heuristic(dataset_to_work_on: Dataset, length: int, capacity: int):
     ratio = [dataset_to_work_on.vals[i]/dataset_to_work_on.sizes[i] for i in range(len(dataset_to_work_on.vals))]
-    sorting_based_on_ratio(ratio)
+    sorted_sizes, sorted_values = sorting_based_on_ratio(ratio, dataset_to_work_on.sizes, dataset_to_work_on.vals)
 
 
 def main():
