@@ -55,8 +55,8 @@ def calculate_on_current_possible_set(i, sizes, values, capacity):
     indexes = [i for i, bit in enumerate(binary_representation) if bit == '1']
     size = sum(sizes[i] for i in indexes)
     value = sum(values[i] for i in indexes)
-    values_not_used = [values[x] for x in range(len(values)) if x not in indexes]
-    if size > capacity or size + min(values_not_used) < capacity:
+    sizes_not_used = [sizes[x] for x in range(len(sizes)) if x not in indexes]
+    if size > capacity or size + min(sizes_not_used) < capacity:
         return None, None, None
     return indexes, size, value
 
@@ -66,23 +66,41 @@ def sorting_based_on_ratio(ratio, sizes, values):
     return [element for _, element, _ in sorted_lists], [element for _, _, element in sorted_lists]
 
 
-def autistic_heuristic(dataset_to_work_on: Dataset, length: int, capacity: int):
+def autistic_heuristic(dataset_to_work_on: Dataset, capacity: int):
+    start = time()
     ratio = [dataset_to_work_on.vals[i]/dataset_to_work_on.sizes[i] for i in range(len(dataset_to_work_on.vals))]
     sorted_sizes, sorted_values = sorting_based_on_ratio(ratio, dataset_to_work_on.sizes, dataset_to_work_on.vals)
+    value_best = 0
+    size_best = 0
+    sizes_left = sorted_sizes.copy()
+    for index, (size, value) in enumerate(zip(sorted_sizes, sorted_values)):
+        if min(sizes_left) + size_best > capacity:
+            return value_best, size_best, (time() - start)
+        if size + size_best > capacity:
+            continue
+        value_best += value
+        size_best += size
+        sizes_left = sorted_values[index:]
+
+    return value_best, size_best, (time() - start)
 
 
 def main():
     length, capacity, datasets_list = read_data()
-    dataset_number = random.randint(0, len(datasets_list))
-    dataset_to_work_on = datasets_list[dataset_number]
+    dataset_number = random.randint(0, len(datasets_list) - 1)
+    print(len(datasets_list))
+    dataset_to_work_on = datasets_list[0]
     global should_run
     should_run = True
     pool = ThreadPoolExecutor(2)
     print("FIGHT!!!")
-    #brudas = pool.submit(brudas_force, dataset_to_work_on, length, capacity)
-    pool.submit(autistic_heuristic, dataset_to_work_on, length, capacity)
-    #time_needed, winning_set, value, size_taken = brudas.result()
-    #print(f'Brudas force needed: {time_needed}\nWinning set is: {winning_set}\nValue: {value}\nSize taken:{size_taken}')
+    brudas = pool.submit(brudas_force, dataset_to_work_on, length, capacity)
+    heuristic = pool.submit(autistic_heuristic, dataset_to_work_on, capacity)
+    value, size_taken, time_needed = heuristic.result()
+    print(f'Heuristic needed: {time_needed}\nValue: {value}\nSize taken:{size_taken}')
+    #should_run = False
+    time_needed, winning_set, value, size_taken = brudas.result()
+    print(f'Brudas force needed: {time_needed}\nWinning set is: {winning_set}\nValue: {value}\nSize taken:{size_taken}')
 
 
 if __name__ == '__main__':
