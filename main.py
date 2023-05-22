@@ -62,33 +62,35 @@ def calculate_on_current_possible_set(i, sizes, values, capacity):
 
 
 def sorting_based_on_ratio(ratio, sizes, values):
-    sorted_lists = sorted(zip(ratio, sizes, values), reverse=True)
-    return [element for _, element, _ in sorted_lists], [element for _, _, element in sorted_lists]
+    indexes = [i for i in range(len(values))]
+    sorted_lists = sorted(zip(ratio, sizes, values, indexes), reverse=True)
+    return [element for _, element, _, _ in sorted_lists], [element for _, _, element, _ in sorted_lists], [element for _, _, _, element in sorted_lists]
 
 
 def autistic_heuristic(dataset_to_work_on: Dataset, capacity: int):
     start = time()
     ratio = [dataset_to_work_on.vals[i]/dataset_to_work_on.sizes[i] for i in range(len(dataset_to_work_on.vals))]
-    sorted_sizes, sorted_values = sorting_based_on_ratio(ratio, dataset_to_work_on.sizes, dataset_to_work_on.vals)
+    sorted_sizes, sorted_values, indexes = sorting_based_on_ratio(ratio, dataset_to_work_on.sizes, dataset_to_work_on.vals)
     value_best = 0
     size_best = 0
+    indexes_to_return = []
     sizes_left = sorted_sizes.copy()
-    for index, (size, value) in enumerate(zip(sorted_sizes, sorted_values)):
+    for index, (size, value, index_indexes) in enumerate(zip(sorted_sizes, sorted_values, indexes)):
         if min(sizes_left) + size_best > capacity:
-            return value_best, size_best, (time() - start)
+            return indexes_to_return, value_best, size_best, (time() - start)
         if size + size_best > capacity:
             continue
         value_best += value
         size_best += size
+        indexes_to_return.append(index_indexes)
         sizes_left = sorted_values[index:]
 
-    return value_best, size_best, (time() - start)
+    return indexes_to_return, value_best, size_best, (time() - start)
 
 
 def main():
     length, capacity, datasets_list = read_data()
     dataset_number = random.randint(0, len(datasets_list) - 1)
-    print(len(datasets_list))
     dataset_to_work_on = datasets_list[0]
     global should_run
     should_run = True
@@ -96,11 +98,11 @@ def main():
     print("FIGHT!!!")
     brudas = pool.submit(brudas_force, dataset_to_work_on, length, capacity)
     heuristic = pool.submit(autistic_heuristic, dataset_to_work_on, capacity)
-    value, size_taken, time_needed = heuristic.result()
-    print(f'Heuristic needed: {time_needed}\nValue: {value}\nSize taken:{size_taken}')
-    #should_run = False
+    winning_set, value, size_taken, time_needed = heuristic.result()
+    print(f'Heuristic needed: {time_needed}\nWinning set is: {[(i, dataset_to_work_on.sizes[i], dataset_to_work_on.vals[i]) for i in winning_set]}\nValue: {value}\nSize taken: {size_taken}')
+    # should_run = False <- UNCOMMENT ONLY WHEN U WANT TO END BOTH ALGORITHMS AT THE SAME (VERY SIMILAR) TIME AND COMPARE RESULTS
     time_needed, winning_set, value, size_taken = brudas.result()
-    print(f'Brudas force needed: {time_needed}\nWinning set is: {winning_set}\nValue: {value}\nSize taken:{size_taken}')
+    print(f'Brudas force needed: {time_needed}\nWinning set is: {[(i, dataset_to_work_on.sizes[i], dataset_to_work_on.vals[i]) for i in winning_set]}\nValue: {value}\nSize taken: {size_taken}')
 
 
 if __name__ == '__main__':
